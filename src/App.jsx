@@ -6,10 +6,17 @@ import AudioLibrary from "./components/AudioLibrary.jsx";
 
 const DEFAULT_CURVE = Array(24).fill(2);
 
-function getCurrentHourEnergy(curve) {
-  const hour = new Date().getHours();
-  return curve[hour] || 2;
-}
+const ENERGY_COLORS = {
+  high: "rgba(255,107,53,0.10)",
+  mid:  "rgba(251,191,36,0.08)",
+  low:  "rgba(78,205,196,0.08)",
+};
+
+const NAV_ITEMS = [
+  { id: "timeline", icon: "⏱", label: "精力曲线" },
+  { id: "checkin",  icon: "❓", label: "精力检测" },
+  { id: "library",  icon: "📂", label: "音乐库" },
+];
 
 export default function App() {
   const [view, setView] = useState("player");
@@ -22,33 +29,21 @@ export default function App() {
 
   const audioRef = useRef(null);
 
-  // Initialize audio element
   useEffect(() => {
     const audio = new Audio();
-    audio.volume = 0.8;
+    audio.volume = 0.85;
     audioRef.current = audio;
 
     audio.addEventListener("timeupdate", () => {
-      if (audio.duration) {
-        setProgress(audio.currentTime / audio.duration);
-      }
+      if (audio.duration) setProgress(audio.currentTime / audio.duration);
     });
-
-    audio.addEventListener("ended", () => {
-      setIsPlaying(false);
-      setProgress(0);
-    });
-
+    audio.addEventListener("ended", () => { setIsPlaying(false); setProgress(0); });
     audio.addEventListener("play", () => setIsPlaying(true));
     audio.addEventListener("pause", () => setIsPlaying(false));
 
-    return () => {
-      audio.pause();
-      audio.src = "";
-    };
+    return () => { audio.pause(); audio.src = ""; };
   }, []);
 
-  // When track changes, load and play
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
@@ -62,10 +57,7 @@ export default function App() {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
-      if (!audio.src && library.length > 0) {
-        setCurrentTrack(library[0]);
-        return;
-      }
+      if (!audio.src && library.length > 0) { setCurrentTrack(library[0]); return; }
       audio.play().catch(() => {});
     } else {
       audio.pause();
@@ -75,25 +67,14 @@ export default function App() {
   const handleSeek = useCallback((e) => {
     const audio = audioRef.current;
     if (!audio || !audio.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
+    const pct = (e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.offsetWidth;
     audio.currentTime = pct * audio.duration;
     setProgress(pct);
   }, []);
 
   const handleEnergyChange = useCallback((level) => {
     setEnergyLevel(level);
-    // Filter library tracks by energy level if tagged, otherwise pick any
-    const matching = library.filter((t) => !t.energyLabel || t.energyLabel === level);
-    const candidates = matching.length > 0 ? matching : library;
-    if (candidates.length > 0 && currentTrack) {
-      const idx = candidates.findIndex((t) => t.id === currentTrack.id);
-      const next = candidates[(idx + 1) % candidates.length];
-      if (next && next.id !== currentTrack.id) {
-        setCurrentTrack(next);
-      }
-    }
-  }, [library, currentTrack]);
+  }, []);
 
   const handleSelectTrack = useCallback((track) => {
     setCurrentTrack(track);
@@ -102,9 +83,7 @@ export default function App() {
 
   const handleAddTracks = useCallback((tracks) => {
     setLibrary((prev) => [...prev, ...tracks]);
-    if (!currentTrack) {
-      setCurrentTrack(tracks[0]);
-    }
+    if (!currentTrack) setCurrentTrack(tracks[0]);
   }, [currentTrack]);
 
   const handleRemoveTrack = useCallback((id) => {
@@ -115,76 +94,82 @@ export default function App() {
     }
   }, [library, currentTrack]);
 
-  // Auto-apply energy curve every hour
-  useEffect(() => {
-    const hour = new Date().getHours();
-    const curveEnergy = energyCurve[hour];
-    const levels = ["low", "mid", "high"];
-    const level = levels[curveEnergy - 1] || "mid";
-    // Apply curve-based energy, but don't override manual selection immediately
-    const timer = setInterval(() => {
-      const currentHour = new Date().getHours();
-      const ce = energyCurve[currentHour];
-      const l = levels[ce - 1] || "mid";
-      // Only auto-switch if user hasn't manually selected in the last 30 min
-      // For simplicity, just set it
-      setEnergyLevel(l);
-    }, 60000); // Check every minute
-
-    return () => clearInterval(timer);
-  }, [energyCurve]);
+  const glowColor = ENERGY_COLORS[energyLevel] || ENERGY_COLORS.mid;
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%)",
+      background: "#08090b",
       color: "#fff",
-      fontFamily: "'LXGW WenKai', 'Noto Serif SC', Georgia, serif",
+      fontFamily: "'LXGW WenKai', 'Noto Serif SC', system-ui, sans-serif",
+      position: "relative",
+      overflow: "hidden",
     }}>
+      {/* Google Font */}
       <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet" />
 
-      {/* Main content */}
-      {view === "player" && (
-        <Player
-          energyLevel={energyLevel}
-          onEnergyChange={handleEnergyChange}
-          isPlaying={isPlaying}
-          onTogglePlay={togglePlay}
-          currentTrack={currentTrack}
-          progress={progress}
-          onSeek={handleSeek}
-        />
-      )}
+      {/* Ambient glow */}
+      <div style={{
+        position: "fixed",
+        top: "50%",
+        left: "50%",
+        width: 500,
+        height: 500,
+        marginLeft: -250,
+        marginTop: -280,
+        borderRadius: "50%",
+        background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
+        transition: "background 0.8s ease",
+        pointerEvents: "none",
+      }} />
 
-      {view === "timeline" && (
-        <EnergyTimeline
-          curve={energyCurve}
-          onChange={setEnergyCurve}
-          onClose={() => setView("player")}
-        />
-      )}
+      {/* CSS animations */}
+      <style>{`
+        @keyframes ringPulse {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.04); opacity: 1; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-      {view === "checkin" && (
-        <EnergyCheckin
-          onComplete={(result) => {
-            setEnergyLevel(result.id);
-            setView("player");
-          }}
-          onQuickSelect={(level) => {
-            setEnergyLevel(level);
-            setView("player");
-          }}
-        />
-      )}
-
-      {view === "library" && (
-        <AudioLibrary
-          tracks={library}
-          onAddTrack={handleAddTracks}
-          onSelectTrack={handleSelectTrack}
-          onRemoveTrack={handleRemoveTrack}
-        />
-      )}
+      {/* Views */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {view === "player" && (
+          <Player
+            energyLevel={energyLevel}
+            onEnergyChange={handleEnergyChange}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            currentTrack={currentTrack}
+            progress={progress}
+            onSeek={handleSeek}
+          />
+        )}
+        {view === "timeline" && (
+          <EnergyTimeline curve={energyCurve} onChange={setEnergyCurve} onClose={() => setView("player")} />
+        )}
+        {view === "checkin" && (
+          <EnergyCheckin
+            onComplete={(r) => { setEnergyLevel(r.id); setView("player"); }}
+            onQuickSelect={(l) => { setEnergyLevel(l); setView("player"); }}
+          />
+        )}
+        {view === "library" && (
+          <AudioLibrary
+            tracks={library}
+            onAddTrack={handleAddTracks}
+            onSelectTrack={handleSelectTrack}
+            onRemoveTrack={handleRemoveTrack}
+          />
+        )}
+      </div>
 
       {/* Bottom navigation */}
       <div style={{
@@ -192,59 +177,56 @@ export default function App() {
         bottom: 0,
         left: 0,
         right: 0,
+        zIndex: 10,
+        padding: "0 20px 28px",
         display: "flex",
         justifyContent: "center",
-        gap: 8,
-        padding: "12px 20px 24px",
-        background: "linear-gradient(transparent, rgba(13,17,23,0.95) 40%)",
+        gap: 4,
       }}>
         {view === "player" ? (
-          <>
-            <NavBtn
-              icon="⏱"
-              label="精力曲线"
-              onClick={() => setView("timeline")}
-            />
-            <NavBtn
-              icon="❓"
-              label="精力检测"
-              onClick={() => setView("checkin")}
-            />
-            <NavBtn
-              icon="📂"
-              label={`音乐库${library.length > 0 ? ` (${library.length})` : ""}`}
-              onClick={() => setView("library")}
-            />
-          </>
+          NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 20,
+                border: "none",
+                background: "rgba(255,255,255,0.02)",
+                color: "rgba(255,255,255,0.25)",
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                letterSpacing: 0.5,
+                transition: "color 0.3s ease",
+              }}
+            >
+              <span style={{ marginRight: 4 }}>{item.icon}</span>
+              {item.label}
+              {item.id === "library" && library.length > 0 && (
+                <span style={{ marginLeft: 3, opacity: 0.5 }}>{library.length}</span>
+              )}
+            </button>
+          ))
         ) : (
-          <NavBtn
-            icon="←"
-            label="返回"
+          <button
             onClick={() => setView("player")}
-          />
+            style={{
+              padding: "8px 20px",
+              borderRadius: 20,
+              border: "none",
+              background: "rgba(255,255,255,0.02)",
+              color: "rgba(255,255,255,0.30)",
+              fontSize: 11,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              letterSpacing: 0.5,
+            }}
+          >
+            ← 返回
+          </button>
         )}
       </div>
     </div>
-  );
-}
-
-function NavBtn({ icon, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "8px 16px",
-        borderRadius: 20,
-        border: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.03)",
-        color: "rgba(255,255,255,0.4)",
-        fontSize: 12,
-        cursor: "pointer",
-        fontFamily: "'LXGW WenKai', serif",
-        transition: "all 0.2s ease",
-      }}
-    >
-      {icon} {label}
-    </button>
   );
 }

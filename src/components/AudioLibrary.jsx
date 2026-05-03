@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 
-function formatDuration(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
+function fmtDuration(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
 export default function AudioLibrary({ tracks, onAddTrack, onSelectTrack, onRemoveTrack }) {
@@ -12,79 +12,64 @@ export default function AudioLibrary({ tracks, onAddTrack, onSelectTrack, onRemo
 
   const handleFiles = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+    if (!files.length) return;
     setImporting(true);
 
-    const newTracks = [];
-    let loaded = 0;
+    const next = [];
+    let done = 0;
     files.forEach((file) => {
       const url = URL.createObjectURL(file);
-      const audio = new Audio();
-      audio.addEventListener("loadedmetadata", () => {
-        newTracks.push({
+      const a = new Audio();
+      a.addEventListener("loadedmetadata", () => {
+        next.push({
           id: Date.now() + Math.random().toString(36),
           title: file.name.replace(/\.[^.]+$/, ""),
           artist: "本地音频",
-          duration: formatDuration(audio.duration || 0),
+          duration: fmtDuration(a.duration || 0),
           url,
           file,
           energyLabel: "",
         });
-        loaded++;
-        if (loaded === files.length) {
-          onAddTrack(newTracks);
-          setImporting(false);
-        }
+        done++;
+        if (done === files.length) { onAddTrack(next); setImporting(false); }
       });
-      audio.src = url;
+      a.src = url;
     });
   };
 
   return (
-    <div style={{ padding: "24px 20px" }}>
-      <h2 style={{
-        fontSize: 20,
-        fontWeight: 700,
-        margin: "0 0 4px",
-        color: "rgba(255,255,255,0.9)",
-        fontFamily: "'LXGW WenKai', serif",
-        textAlign: "center",
-      }}>
+    <div style={{ padding: "48px 20px", minHeight: "100vh" }}>
+      <h2 style={{ textAlign: "center", fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "rgba(255,255,255,0.85)", fontFamily: "'LXGW WenKai', serif" }}>
         本地音乐库
       </h2>
-      <p style={{ fontSize: 13, opacity: 0.4, margin: "0 0 24px", textAlign: "center" }}>
-        {tracks.length === 0 ? "导入你的音频文件开始收听" : `${tracks.length} 首音频`}
+      <p style={{ textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.25)", margin: "4px 0 32px" }}>
+        {tracks.length === 0 ? "导入你的音频文件" : `${tracks.length} 首音频`}
       </p>
 
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="audio/*"
-          multiple
-          onChange={handleFiles}
-          style={{ display: "none" }}
-        />
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <input ref={fileRef} type="file" accept="audio/*" multiple onChange={handleFiles} style={{ display: "none" }} />
         <button
           onClick={() => fileRef.current?.click()}
           disabled={importing}
           style={{
-            padding: "14px 28px",
+            padding: "14px 32px",
             borderRadius: 16,
-            border: "1px dashed rgba(255,255,255,0.15)",
-            background: "rgba(255,255,255,0.04)",
-            color: importing ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+            border: "1px dashed rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.02)",
+            color: importing ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.50)",
             fontSize: 14,
             cursor: importing ? "default" : "pointer",
             fontFamily: "'LXGW WenKai', serif",
+            transition: "all 0.3s ease",
+            letterSpacing: 0.5,
           }}
         >
-          {importing ? "导入中..." : "📂 导入音频文件"}
+          {importing ? "导入中..." : "📂  导入音频文件"}
         </button>
       </div>
 
       {tracks.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, maxWidth: 400, margin: "0 auto" }}>
           {tracks.map((t, idx) => (
             <div
               key={t.id || idx}
@@ -92,60 +77,49 @@ export default function AudioLibrary({ tracks, onAddTrack, onSelectTrack, onRemo
               style={{
                 display: "flex",
                 alignItems: "center",
-                padding: "12px 16px",
+                padding: "14px 16px",
                 borderRadius: 12,
                 cursor: "pointer",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.04)",
-                transition: "all 0.2s ease",
+                background: "transparent",
+                transition: "background 0.15s ease",
               }}
             >
               <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.06)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                marginRight: 12,
+                width: 40, height: 40, borderRadius: 10,
+                background: "rgba(255,255,255,0.04)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16, marginRight: 14,
               }}>
                 🎵
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: "rgba(255,255,255,0.8)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>{t.title}</p>
-                <p style={{ margin: "2px 0 0", fontSize: 11, opacity: 0.3 }}>{t.duration}</p>
+                  margin: 0, fontSize: 14, color: "rgba(255,255,255,0.75)",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {t.title}
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.20)" }}>
+                  {t.duration}
+                </p>
               </div>
-              {onRemoveTrack && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRemoveTrack(t.id); }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "rgba(255,255,255,0.2)",
-                    fontSize: 16,
-                    cursor: "pointer",
-                    padding: 4,
-                  }}
-                >
-                  ✕
-                </button>
-              )}
+              <button
+                onClick={(ev) => { ev.stopPropagation(); onRemoveTrack(t.id); }}
+                style={{
+                  background: "none", border: "none",
+                  color: "rgba(255,255,255,0.12)", fontSize: 14,
+                  cursor: "pointer", padding: 4,
+                }}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      <p style={{ fontSize: 10, opacity: 0.15, textAlign: "center", marginTop: 32 }}>
-        支持 mp3, wav, ogg, m4a 等常见格式
+      <p style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.08)", marginTop: 40 }}>
+        mp3 · wav · ogg · m4a · aac
       </p>
     </div>
   );

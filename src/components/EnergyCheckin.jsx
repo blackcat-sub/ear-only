@@ -1,137 +1,96 @@
 import { useState } from "react";
 
-const QUESTIONS = [
-  {
-    question: "你现在能集中注意力多久？",
-    options: [
-      { label: "30分钟以上", score: 3 },
-      { label: "10-30分钟", score: 2 },
-      { label: "几分钟都很难", score: 1 },
-    ],
-  },
-  {
-    question: "你现在想用脑还是放空？",
-    options: [
-      { label: "想学点东西", score: 3 },
-      { label: "随便听听", score: 2 },
-      { label: "什么都不想想", score: 1 },
-    ],
-  },
-  {
-    question: "你现在的状态是？",
-    options: [
-      { label: "精力充沛", score: 3 },
-      { label: "还行", score: 2 },
-      { label: "很疲惫", score: 1 },
-    ],
-  },
+const QS = [
+  { q: "你现在能集中注意力多久？", opts: ["30分钟以上", "10-30分钟", "几分钟都很难"] },
+  { q: "你现在想用脑还是放空？",     opts: ["想学点东西", "随便听听", "什么都不想想"] },
+  { q: "你现在的状态是？",           opts: ["精力充沛", "还行", "很疲惫"] },
 ];
 
-function scoreToLevel(total) {
-  if (total >= 7) return { id: "high", label: "高精力", icon: "⚡" };
-  if (total >= 4) return { id: "mid", label: "中精力", icon: "🎧" };
-  return { id: "low", label: "低精力", icon: "🌿" };
+function totalToLevel(total) {
+  if (total >= 7) return { id: "high", label: "高精力", icon: "⚡", color: "#FF6B35" };
+  if (total >= 4) return { id: "mid",  label: "中精力", icon: "🎧", color: "#FBBF24" };
+  return                  { id: "low",  label: "低精力", icon: "🌿", color: "#4ECDC4" };
 }
 
 export default function EnergyCheckin({ onComplete, onQuickSelect }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState([]);
 
-  const handleAnswer = (score) => {
+  const handle = (score) => {
     const next = [...answers, score];
     setAnswers(next);
-    if (next.length < QUESTIONS.length) {
+    if (next.length < QS.length) {
       setStep((s) => s + 1);
     } else {
-      const total = next.reduce((a, b) => a + b, 0);
-      onComplete(scoreToLevel(total));
+      onComplete(totalToLevel(next.reduce((a, b) => a + b, 0)));
     }
   };
 
-  const reset = () => {
-    setStep(0);
-    setAnswers([]);
-  };
+  const reset = () => { setStep(0); setAnswers([]); };
 
+  // Screen 0: quick pick
   if (step === 0 && answers.length === 0) {
     return (
-      <div style={containerStyle}>
-        <h2 style={titleStyle}>精力检测</h2>
-        <p style={subtitleStyle}>帮你判断当前适合听什么</p>
+      <div style={c}>
+        <h2 style={t}>精力检测</h2>
+        <p style={st}>帮你判断当前适合听什么</p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 32 }}>
-          <button onClick={() => onQuickSelect("high")} style={quickBtnStyle("#FF6B35")}>
-            ⚡ 高精力 · 想学点东西
+        <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 10 }}>
+          <button onClick={() => onQuickSelect("high")} style={qk("#FF6B35")}>
+            <span style={qki}>⚡</span> 高精力 · 想学点东西
           </button>
-          <button onClick={() => onQuickSelect("mid")} style={quickBtnStyle("#FBBF24")}>
-            🎧 中精力 · 随便听听
+          <button onClick={() => onQuickSelect("mid")} style={qk("#FBBF24")}>
+            <span style={qki}>🎧</span> 中精力 · 随便听听
           </button>
-          <button onClick={() => onQuickSelect("low")} style={quickBtnStyle("#4ECDC4")}>
-            🌿 低精力 · 需要放松
+          <button onClick={() => onQuickSelect("low")} style={qk("#4ECDC4")}>
+            <span style={qki}>🌿</span> 低精力 · 需要放松
           </button>
         </div>
 
-        <div style={{ marginTop: 32 }}>
-          <p style={{ fontSize: 12, opacity: 0.3, marginBottom: 12, textAlign: "center" }}>
-            不确定？回答 3 个问题帮你判断
+        <div style={{ marginTop: 48 }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.18)", marginBottom: 14 }}>
+            不确定？3 题帮你判断
           </p>
-          <button onClick={() => setStep(1)} style={startBtnStyle}>
-            开始检测（10秒）
-          </button>
+          <button onClick={() => setStep(1)} style={sb}>开始检测</button>
         </div>
       </div>
     );
   }
 
-  const q = QUESTIONS[step - 1];
+  // Question screens
+  const q = QS[step - 1];
 
   return (
-    <div style={containerStyle}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-        {QUESTIONS.map((_, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              height: 3,
-              borderRadius: 2,
-              background: i + 1 <= step ? "#4ECDC4" : "rgba(255,255,255,0.1)",
-              transition: "background 0.3s ease",
-            }}
-          />
+    <div style={c}>
+      {/* Progress dots */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 48 }}>
+        {QS.map((_, i) => (
+          <div key={i} style={{
+            width: i + 1 <= step ? 24 : 6,
+            height: 3,
+            borderRadius: 2,
+            background: i + 1 <= step ? "#4ECDC4" : "rgba(255,255,255,0.08)",
+            transition: "all 0.4s ease",
+          }} />
         ))}
       </div>
 
-      <h2 style={{ ...titleStyle, marginBottom: 24 }}>{q.question}</h2>
+      <h2 style={{ ...t, marginBottom: 32, lineHeight: 1.5 }}>{q.q}</h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {q.options.map((opt, i) => (
-          <button key={i} onClick={() => handleAnswer(opt.score)} style={optionStyle}>
-            {opt.label}
-          </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {q.opts.map((opt, i) => (
+          <button key={i} onClick={() => handle(3 - i)} style={ob}>{opt}</button>
         ))}
       </div>
 
-      <button
-        onClick={reset}
-        style={{
-          background: "none",
-          border: "none",
-          color: "rgba(255,255,255,0.3)",
-          fontSize: 12,
-          marginTop: 24,
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        重新开始
-      </button>
+      <button onClick={reset} style={{ ...sb, marginTop: 32, opacity: 0.3 }}>重新开始</button>
     </div>
   );
 }
 
-const containerStyle = {
-  padding: "32px 20px",
+// shared styles
+const c = {
+  padding: "48px 24px",
   textAlign: "center",
   display: "flex",
   flexDirection: "column",
@@ -140,55 +99,58 @@ const containerStyle = {
   justifyContent: "center",
 };
 
-const titleStyle = {
-  fontSize: 20,
+const t = {
+  fontSize: 22,
   fontWeight: 700,
   margin: 0,
-  color: "rgba(255,255,255,0.9)",
+  color: "rgba(255,255,255,0.85)",
   fontFamily: "'LXGW WenKai', serif",
 };
 
-const subtitleStyle = {
+const st = {
   fontSize: 13,
-  opacity: 0.4,
+  color: "rgba(255,255,255,0.30)",
   margin: "4px 0 0",
 };
 
-const quickBtnStyle = (color) => ({
-  width: "100%",
-  maxWidth: 280,
+const qki = { fontSize: 18, lineHeight: 1 };
+
+const qk = (color) => ({
+  width: 260,
   padding: "16px 20px",
   borderRadius: 16,
-  border: `1px solid ${color}33`,
-  background: `${color}11`,
-  color: "rgba(255,255,255,0.85)",
+  border: `1px solid ${color}14`,
+  background: `${color}08`,
+  color: "rgba(255,255,255,0.80)",
   fontSize: 15,
   cursor: "pointer",
   fontFamily: "'LXGW WenKai', serif",
-  transition: "all 0.2s ease",
+  transition: "all 0.3s ease",
+  textAlign: "left",
 });
 
-const startBtnStyle = {
-  padding: "12px 32px",
-  borderRadius: 24,
-  border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(255,255,255,0.06)",
-  color: "rgba(255,255,255,0.6)",
-  fontSize: 14,
-  cursor: "pointer",
-  fontFamily: "'LXGW WenKai', serif",
-};
-
-const optionStyle = {
-  width: "100%",
-  maxWidth: 280,
-  padding: "14px 20px",
+const ob = {
+  width: 260,
+  padding: "15px 20px",
   borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
-  color: "rgba(255,255,255,0.8)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  background: "rgba(255,255,255,0.02)",
+  color: "rgba(255,255,255,0.75)",
   fontSize: 15,
   cursor: "pointer",
   fontFamily: "'LXGW WenKai', serif",
   transition: "all 0.2s ease",
+  textAlign: "left",
+};
+
+const sb = {
+  padding: "10px 28px",
+  borderRadius: 24,
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "transparent",
+  color: "rgba(255,255,255,0.45)",
+  fontSize: 13,
+  cursor: "pointer",
+  fontFamily: "'LXGW WenKai', serif",
+  letterSpacing: 0.5,
 };
