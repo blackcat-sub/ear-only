@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/27312193/README.md)
 # 耳朵only 👂
 
 > 打开即听 · 无推荐 · 无干扰
@@ -176,10 +175,12 @@ Phase 3 — 多端扩展
 
 - [x] 产品方向确定
 - [x] 核心交互原型完成（React组件，见 `ear-only-prototype.jsx`）
-- [ ] 精力曲线时间轴（替代原型中的场景比例滑块）
-- [ ] 精力快速检测流程
-- [ ] 极简主界面重构（大按钮 + 精力滑块）
-- [ ] 本地音乐导入功能
+- [x] Vite React 项目工程化（`npm install` + `npm run build` 通过）
+- [x] 数据模型从场景重构为精力档位（高/中/低精力 → 高/中/低信息密度）
+- [x] 极简主界面（大播放按钮 + 精力滑块）
+- [x] 24小时精力曲线时间轴（可拖拽编辑每小时的精力档位）
+- [x] 精力快速检测流程（快速模式 + 3问辅助判断）
+- [x] 本地音乐导入与 HTML5 Audio 播放
 - [ ] 后端架构设计
 - [ ] AI分类能力接入
 
@@ -189,10 +190,39 @@ Phase 3 — 多端扩展
 
 ```
 ear-only/
-├── README.md                  ← 你在这里
-├── ear-only-prototype.jsx     ← 交互原型（当前版本，待更新）
-└── ...                        ← 待补充
+├── README.md
+├── package.json
+├── vite.config.js
+├── index.html
+├── ear-only-prototype.jsx     ← 原始原型文件（保留参考）
+├── src/
+│   ├── main.jsx              ← 入口
+│   ├── App.jsx               ← 主应用（视图切换、音频播放、状态管理）
+│   └── components/
+│       ├── Player.jsx        ← 极简播放器（大按钮 + 精力滑块）
+│       ├── EnergyTimeline.jsx ← 24小时精力曲线编辑器
+│       ├── EnergyCheckin.jsx  ← 精力快速检测（快速 + 3问）
+│       ├── AudioLibrary.jsx   ← 本地音频导入与管理
+│       └── AudioVisualizer.jsx ← 音频可视化条
+└── dist/                     ← 构建输出
 ```
+
+## Development
+
+本项目处于 **prototype（原型）** 阶段，当前是一个基于 Vite + React 的纯前端项目。
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+```
+
+启动后浏览器访问 `http://localhost:5173` 即可看到当前原型界面。
 
 ---
 
@@ -209,4 +239,4 @@ ear-only/
 
 ## License
 
-待定
+尚未决定
